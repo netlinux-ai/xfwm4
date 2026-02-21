@@ -28,7 +28,8 @@ jobs:
             libxrender-dev libxcomposite-dev libxdamage-dev \
             libxfixes-dev libxrandr-dev libxpresent-dev \
             xfce4-dev-tools gobject-introspection \
-            libgirepository1.0-dev
+            libgirepository1.0-dev \
+            librsvg2-dev librsvg2-common
 
       - name: Configure
         run: |
