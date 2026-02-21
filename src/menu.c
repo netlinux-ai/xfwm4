@@ -60,6 +60,8 @@ static MenuItem menuitems[] = {
     {MENU_OP_UNSHADE,      MENU_TYPE_REGULAR,  N_("Roll Window Down")},
     {MENU_OP_FULLSCREEN,   MENU_TYPE_REGULAR,  N_("_Fullscreen")},
     {MENU_OP_UNFULLSCREEN, MENU_TYPE_REGULAR,  N_("Leave _Fullscreen")},
+    {MENU_OP_UNDECORATE,   MENU_TYPE_REGULAR,  N_("Hide _Decorations")},
+    {MENU_OP_DECORATE,     MENU_TYPE_REGULAR,  N_("Show _Decorations")},
     {MENU_OP_CONTEXT_HELP, MENU_TYPE_REGULAR,  N_("Context _Help")},
     {0, 0, NULL}, /* ----------------------------------------------*/
     {MENU_OP_STICK,        MENU_TYPE_CHECKBOX, N_("Always on _Visible Workspace")},

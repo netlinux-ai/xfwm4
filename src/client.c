@@ -3116,6 +3116,54 @@ void clientToggleFullscreen (Client *c)
     }
 }
 
+void
+clientToggleDecorations (Client *c)
+{
+    DisplayInfo *display_info;
+    int fx, fy;
+
+    g_return_if_fail (c != NULL);
+    TRACE ("client \"%s\" (0x%lx)", c->name, c->window);
+
+    /* Don't toggle decorations on fullscreen windows */
+    if (FLAG_TEST (c->flags, CLIENT_FLAG_FULLSCREEN))
+    {
+        return;
+    }
+
+    /* Save frame position before changing decoration state */
+    fx = frameX (c);
+    fy = frameY (c);
+
+    if (FLAG_TEST (c->flags, CLIENT_FLAG_UNDECORATED))
+    {
+        /* Restore decorations */
+        FLAG_UNSET (c->flags, CLIENT_FLAG_UNDECORATED);
+        c->xfwm_flags = c->saved_xfwm_flags;
+    }
+    else
+    {
+        /* Remove decorations - unshade first if shaded */
+        if (FLAG_TEST (c->flags, CLIENT_FLAG_SHADED))
+        {
+            clientToggleShaded (c);
+        }
+        c->saved_xfwm_flags = c->xfwm_flags;
+        FLAG_SET (c->flags, CLIENT_FLAG_UNDECORATED);
+        FLAG_UNSET (c->xfwm_flags, XFWM_FLAG_HAS_BORDER | XFWM_FLAG_HAS_MENU);
+    }
+
+    /* Adjust position so the window stays in the same screen location */
+    c->x = fx + frameLeft (c);
+    c->y = fy + frameTop (c);
+
+    display_info = c->screen_info->display_info;
+    setNetFrameExtents (display_info, c->window,
+                        frameTop (c), frameLeft (c),
+                        frameRight (c), frameBottom (c));
+    clientReconfigure (c, CFG_FORCE_REDRAW);
+}
+
 void clientSetFullscreenMonitor (Client *c, gint top, gint bottom, gint left, gint right)
 {
     ScreenInfo *screen_info;

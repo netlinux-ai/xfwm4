@@ -153,6 +153,7 @@
 #define CLIENT_FLAG_SKIP_PAGER          (1L<<11)
 #define CLIENT_FLAG_SKIP_TASKBAR        (1L<<12)
 #define CLIENT_FLAG_STATE_MODAL         (1L<<13)
+#define CLIENT_FLAG_UNDECORATED         (1L<<14)
 #define CLIENT_FLAG_STICKY              (1L<<15)
 #define CLIENT_FLAG_NAME_CHANGED        (1L<<16)
 #define CLIENT_FLAG_DEMANDS_ATTENTION   (1L<<17)
@@ -325,6 +326,7 @@ struct _Client
     unsigned long flags;
     unsigned long wm_flags;
     unsigned long xfwm_flags;
+    unsigned long saved_xfwm_flags;
     gint fullscreen_monitors[4];
     gint frame_extents[SIDE_COUNT];
     tilePositionType tile_mode;
@@ -443,6 +445,7 @@ void                     clientToggleSticky                     (Client *,
                                                                  gboolean);
 void                     clientUpdateFullscreenSize             (Client *);
 void                     clientToggleFullscreen                 (Client *);
+void                     clientToggleDecorations                (Client *);
 void                     clientSetFullscreenMonitor             (Client *,
                                                                  gint,
                                                                  gint,

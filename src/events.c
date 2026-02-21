@@ -371,6 +371,9 @@ handleKeyPress (DisplayInfo *display_info, XfwmEventKey *event)
             case KEY_TOGGLE_ABOVE:
                 clientToggleLayerAbove (c);
                 break;
+            case KEY_TOGGLE_DECORATIONS:
+                clientToggleDecorations (c);
+                break;
             case KEY_TOGGLE_FULLSCREEN:
                 clientToggleFullscreen (c);
                 break;
@@ -2391,6 +2394,10 @@ menu_callback (Menu * menu, MenuOp op, Window xid, gpointer menu_data, gpointer 
             case MENU_OP_UNFULLSCREEN:
                 clientToggleFullscreen (c);
                 break;
+            case MENU_OP_UNDECORATE:
+            case MENU_OP_DECORATE:
+                clientToggleDecorations (c);
+                break;
             default:
                 break;
         }
@@ -2550,6 +2557,22 @@ show_window_menu (Client *c, gint px, gint py, guint button, guint32 timestamp, 
     if (is_transient || (c->type != WINDOW_NORMAL))
     {
         insensitive |= MENU_OP_FULLSCREEN | MENU_OP_UNFULLSCREEN;
+    }
+
+    if (FLAG_TEST (c->flags, CLIENT_FLAG_UNDECORATED))
+    {
+        ops |= MENU_OP_DECORATE;
+    }
+    else
+    {
+        ops |= MENU_OP_UNDECORATE;
+    }
+
+    if (FLAG_TEST (c->flags, CLIENT_FLAG_FULLSCREEN) ||
+        (!FLAG_TEST (c->flags, CLIENT_FLAG_UNDECORATED) &&
+         !FLAG_TEST (c->xfwm_flags, XFWM_FLAG_HAS_BORDER)))
+    {
+        insensitive |= MENU_OP_UNDECORATE | MENU_OP_DECORATE;
     }
 
     if (FLAG_TEST(c->flags, CLIENT_FLAG_ABOVE))
