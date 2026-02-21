@@ -1,0 +1,101 @@
+name: Build .deb package
+
+on:
+  push:
+    branches: [netlinux]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config meson ninja-build \
+            xfce4-dev-tools \
+            libgtk-3-dev libglib2.0-dev libcairo2-dev \
+            libxfce4ui-2-dev libxfce4util-dev libxfconf-0-dev \
+            libwnck-3-dev \
+            libx11-dev libxinerama-dev libxi-dev libxres-dev \
+            libxext-dev libepoxy-dev libstartup-notification0-dev \
+            libxrender-dev libxcomposite-dev libxdamage-dev \
+            libxfixes-dev libxrandr-dev libxpresent-dev \
+            xfce4-dev-tools gobject-introspection \
+            libgirepository1.0-dev
+
+      - name: Configure
+        run: |
+          meson setup build --prefix=/usr --buildtype=release
+
+      - name: Build
+        run: ninja -C build
+
+      - name: Determine version
+        id: version
+        run: |
+          ver=$(meson introspect build --projectinfo | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])")
+          # Strip -dev suffix if present
+          ver=$(echo "$ver" | sed 's/-dev$//')
+          rev=${{ github.run_number }}
+          echo "version=${ver}-${rev}netlinux1" >> "$GITHUB_OUTPUT"
+          echo "tag=v${ver}-${rev}netlinux1" >> "$GITHUB_OUTPUT"
+
+      - name: Package with checkinstall
+        run: |
+          sudo apt-get install -y checkinstall
+          sudo checkinstall --default \
+            --pkgname=xfwm4 \
+            --pkgversion="${{ steps.version.outputs.version }}" \
+            --requires="libgtk-3-0t64,libglib2.0-0t64,libwnck-3-0,libxfce4ui-2-0,libxfce4util7,libxfconf-0-3,libepoxy0,libstartup-notification0,libxcomposite1,libxdamage1,libxfixes3,libxrandr2,libxrender1,libxres1,libxpresent1,libxinerama1,libx11-6,libxext6" \
+            --maintainer="graham@netlinux.co.uk" \
+            --pakdir=. \
+            --install=no \
+            --fstrans=no \
+            ninja -C build install
+
+      - name: Repack .deb for reprepro compatibility
+        run: |
+          DEB=$(ls xfwm4_*.deb)
+          sudo chmod 666 "$DEB"
+          mkdir repack && cd repack
+          ar x "../$DEB"
+          for f in *.zst; do
+            [ -f "$f" ] || continue
+            zstd -d "$f"
+            xz "${f%.zst}"
+            rm "$f"
+          done
+          rm "../$DEB"
+          ar rcs "../$DEB" debian-binary control.tar.xz data.tar.xz
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: xfwm4 ${{ steps.version.outputs.version }}
+          body: |
+            Automated build from commit ${{ github.sha }}
+
+            Install: `sudo dpkg -i xfwm4_*.deb`
+          files: xfwm4_*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify package repository
+        run: |
+          sleep 5
+          SIGNATURE=$(echo -n '{"repo":"netlinux-ai/xfwm4","tag":"${{ steps.version.outputs.tag }}"}' \
+            | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" -binary \
+            | xxd -p -c 256)
+          curl -sf -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Signature: sha256=${SIGNATURE}" \
+            -d '{"repo":"netlinux-ai/xfwm4","tag":"${{ steps.version.outputs.tag }}"}' \
+            https://packages.netlinux.co.uk/webhook/update-repo
